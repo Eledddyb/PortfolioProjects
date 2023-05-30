@@ -29,7 +29,7 @@ From PortfolioProject..CovidDeaths
 --Where location like '%states%'
 order by 1,2 
 
--- Looking at Countriess with Highest Infection Rate compared to Population
+-- Looking at Countries with Highest Infection Rate compared to Population
 
 Select location, population,  MAX(total_cases) as HighestInfectionCount, MAX((total_cases/population))*100 as PercentPopulationInfected
 From PortfolioProject..CovidDeaths
@@ -106,3 +106,52 @@ Where dea.continent is not null
 )
 Select *, (RollingPeopleVaccinated/Population)*100
 From PopvsVac
+
+
+-- Temp Table
+
+DROP Table if exists #PercentPopulationVaccinated
+Create Table #PercentPopulationVaccinated
+(
+Continent nvarchar(255),
+Location nvarchar(255),
+Date datetime,
+Population numeric,
+New_vaccinattions numeric,
+RollingPeopleVaccinated numeric
+)
+
+Insert into #PercentPopulationVaccinated
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+, SUM(Convert(int,vac.new_vaccinations)) Over (Partition by dea.Location Order by dea.location, 
+dea.date) as RollingPeopleVaccinated
+--, (RollingPeopleVaccinated/population)*100
+From PortfolioProject..CovidDeaths dea
+Join PortfolioProject..CovidVaccinations vac
+	On dea.location = vac.location
+	and dea.date = vac.date
+Where dea.continent is not null
+--order by 2 ,3
+
+Select *, (RollingPeopleVaccinated/Population)*100
+From #PercentPopulationVaccinated
+ 
+
+-- Creating View to store data for later visualization
+
+Use PortfolioProject
+Go
+Create View PercentPopulationVaccinated as
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+, SUM(Convert(int,vac.new_vaccinations)) Over (Partition by dea.Location Order by dea.location, 
+dea.date) as RollingPeopleVaccinated
+--, (RollingPeopleVaccinated/population)*100
+From PortfolioProject..CovidDeaths dea
+Join PortfolioProject..CovidVaccinations vac
+	On dea.location = vac.location
+	and dea.date = vac.date
+Where dea.continent is not null
+--order by 2 ,3
+
+Select *
+From  PercentPopulationVaccinated
